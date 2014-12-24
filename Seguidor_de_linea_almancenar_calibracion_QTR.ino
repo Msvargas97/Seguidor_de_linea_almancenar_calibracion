@@ -1,9 +1,10 @@
-#include <EEPROMex.h>
-#include <EEPROMVar.h>
-#include <QTRSensors.h>
+#include "EEPROMex.h"
+#include "EEPROMVar.h"
+#include "QTRSensors.h"
 
 #define Kp 1.45 // experiment to determine this, start by something small that just makes your bot follow the line at a slow speed
 #define Kd 16 // experiment to determine this, slowly increase the speeds and adjust this value. ( Note: Kp < Kd) 
+#define Ki 0.6
 #define rightMaxSpeed 255 // max speed of the robot
 #define leftMaxSpeed 255 // max speed of the robot
 #define rightBaseSpeed 255 // this is the speed at which the motors should spin when the robot is perfectly on the line
@@ -36,7 +37,6 @@ byte resetButton=0; // Contador de veces que se reinicia el Arduino
 int memory=511; // Posicion EEPROM en la que se almacenera el contador de reinicios EJ: Arduino UNO = 1000 Bytes pero Arduino Nano 512 Bytes
 int SetPoint=3500;
 float voltage;
-
 
 void restore_sensor(){  // funcion para restaurar sensores una vez reiniciado el arduino
   qtrrc.resetCalibration();
@@ -84,6 +84,12 @@ void setup()
     } 
 
     break;
+  
+  case 30:
+
+    digitalWrite(AZUL,LOW);
+    restore_sensor(); 
+    break;
   case 40:
 
     digitalWrite(AZUL,HIGH);
@@ -123,11 +129,6 @@ void setup()
 
     }
     break;
-  case 30:
-
-    digitalWrite(AZUL,LOW);
-    restore_sensor(); 
-    break;
   }
   delay(800);
 } 
@@ -149,7 +150,7 @@ void loop()
   int position = qtrrc.readLine(sensorValues); // get calibrated readings along with the line position, refer to the QTR Sensors Arduino Library for more details on line position.
   int error = position - SetPoint;
 
-  int motorSpeed = Kp * error +  (integral/100000) + Kd * (error - lastError) ;
+  int motorSpeed = Kp * error +  ((Ki*integral)/10000)) + Kd * (error - lastError) ;
   lastError = error;
   integral += error;
 
@@ -164,7 +165,7 @@ void loop()
   {
     PORTC |= (1 << PORTC2) | (1 << PORTC0);
     PORTC &= ~(1 << PORTC1);
-    analogWrite(rightMotorPWM, rightMotorSpeed);
+    analogWrite(rightMotorPWM, rightMotorSpeed); // PWM
     PORTC |= (1 << PORTC2) | (1 << PORTC4);
     PORTC &= ~(1 << PORTC3);
     analogWrite(leftMotorPWM, leftMotorSpeed);   
